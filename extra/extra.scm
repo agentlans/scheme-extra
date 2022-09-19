@@ -46,6 +46,7 @@
    enumerate
    take
    drop
+   take-until
    range
    windows
    chunks
@@ -402,6 +403,17 @@ Returns the remainder of the list and the first n elements."
 	(take lst n))
     (lambda (head tail)
       (values tail head))))
+
+(define (take-until pred lst)
+  "Takes elements x of lst until pred(x) is true.
+Returns the elements taken and the elements remaining."
+  (do ((out '() (cons item out))
+       (temp (cdr lst) (cdr temp))
+       (item (car lst) (car temp)))
+      ((or (null? temp) (pred item))
+       (values (reverse out)
+	       (cons item temp)))))
+;; (take-until number? '(a b c 1 2)) ;=> '(a b c), (1 2)
 
 (define (range n)
   "Returns the list [0..n-1]."
