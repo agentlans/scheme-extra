@@ -15,7 +15,7 @@
 ;; You should have received a copy of the GNU General Public License along with 
 ;; Extra. If not, see <https://www.gnu.org/licenses/>.
 
-;; For Guile Scheme
+;; Tested on Guile Scheme but it's portable (only need map, filter, error; no SRFI).
 
 (define-module (extra extra)
   #:export
@@ -40,6 +40,15 @@
    combinations
    permutations
    power-set
+   all?
+   any?
+   zip
+   enumerate
+   take
+   drop
+   range
+   windows
+   chunks
    ))
 
 (define (butlast lst)
@@ -329,3 +338,97 @@ not preserving order."
 	       (+ (length lst) 1)))
 ;; (power-set '(1 2 3))
 	; '(() (1) (2) (3) (1 2) (1 3) (2 3) (1 2 3))
+
+(define (all? pred lst)
+  "Whether pred(x) is true for all x in lst."
+  (cond ((null? lst) #t)
+	((not (pred (car lst))) #f)
+	(else (all? pred (cdr lst)))))
+;; (all? even? '(0 2))
+
+(define (any? pred lst)
+  "Whether pred(x) is true for any x in lst."
+  (cond ((null? lst) #f)
+	((pred (car lst)) #t)
+	(else (any? pred (cdr lst)))))
+;; (any? number? '(a d 3))
+
+(define (zip-2 kons lst1 lst2)
+  (do ((l1 lst1 (cdr l1))
+       (l2 lst2 (cdr l2))
+       (out '() (cons (kons (car l1) (car l2))
+		      out)))
+      ((or (null? l1) (null? l2))
+       (reverse out))))
+;; (zip-2 '(1 2 3) '(a b c d))
+
+(define (zip . lists)
+  "Takes successive elements from each list in lists.
+If the lists have unequal lengths, then the output has
+the length of the shortest input list."
+  (lfold (lambda (acc x)
+	   (zip-2 (lambda (y z)
+		    (append y (list z)))
+		  acc x))
+	 (map list (car lists))
+	 (cdr lists)))
+;; (zip '(1 2) '(a b) '(c d)) ;=> ((1 a c) (2 b d))
+
+(define (enumerate lst)
+  "Returns a list of cons pairs where each pair
+consists of a counter and an element of lst."
+  (do ((i 0 (+ i 1))
+       (temp lst (cdr temp))
+       (out '() (cons (cons i (car temp))
+		      out)))
+      ((null? temp) (reverse out))))
+;; (enumerate '(a b c d)) ;=> ((0 . a) (1 . b) (2 . c) (3 . d))
+
+(define (take lst n)
+  "Takes the first n elements of lst.
+Returns the first n elements and the remainder of the list."
+  (do ((i 0 (+ i 1))
+       (head '() (cons (car tail) head))
+       (tail lst (cdr tail)))
+      ((or (= i n) (null? tail))
+       (values (reverse head) tail))))
+;; (take '(1 2 3 4 5) 3) ;=> (1 2 3), (4 5)
+
+(define (drop lst n)
+  "Removes the first n elements of lst.
+Returns the remainder of the list and the first n elements."
+  (call-with-values
+      (lambda ()
+	(take lst n))
+    (lambda (head tail)
+      (values tail head))))
+
+(define (range n)
+  "Returns the list [0..n-1]."
+  (do ((i 0 (+ i 1))
+       (out '() (cons i out)))
+      ((= i n) (reverse out))))
+;; (range 3) ;=> '(0 1 2)
+
+(define (windows lst k)
+  "Returns list of overlapping k-length windows along lst."
+  (let loop ((temp lst)
+	     (out '()))
+    (if (< (length temp) k)
+	(reverse out)
+	(loop (cdr temp)
+	      (cons (take temp k) out)))))
+;; (windows (range 5) 2) ;=> '((0 1) (1 2) (2 3) (3 4))
+
+(define (chunks lst k)
+  "Breaks lst into non-overlapping chunks of length k or shorter."
+  (let loop ((temp lst)
+	     (out '()))
+    (if (null? temp)
+	(reverse out)
+	;; Take the first k values
+	(call-with-values
+	    (lambda () (take temp k))
+	  (lambda (head tail)
+	    (loop tail (cons head out)))))))
+;; (chunks (range 5) 2) ;=> ((0 1) (2 3) (4))
