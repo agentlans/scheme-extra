@@ -1,3 +1,5 @@
+(define-module (extra shuffle)
+  #:export (shuffle!))
 
 (define (vector-swap! vec i j)
   "Swaps vec[i] and vec[j]."
