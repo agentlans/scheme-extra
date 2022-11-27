@@ -1,9 +1,11 @@
 (define-module (extra control)
+  #:use-module (ice-9 match) ; for destructuring in for-each
   #:export (
   dotimes
   for
   do-until
   infinite-loop
+  for-each-loop
   ))
 
 ;; Control structures not found in standard Scheme
@@ -34,4 +36,11 @@
 
 (define-syntax-rule (infinite-loop body ...)
   (while #t (begin body ...)))
+
+(define-syntax-rule (for-each-loop (pattern lst) body ...)
+  (do ((temp lst (cdr temp)))
+     ((null? temp))
+     (match (car temp)
+       (pattern (begin body ...))
+       (t (error "Element doesn't match pattern")))))
 
